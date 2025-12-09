@@ -10,7 +10,7 @@
   </a>
 </p>
 
-🚀 Boilerplate and Starter for Next.js with App Router, Tailwind CSS, and TypeScript ⚡️ Prioritizing developer experience first: Next.js, TypeScript, ESLint, Prettier, Lefthook (replacing Husky), Lint-Staged, Vitest (replacing Jest), Testing Library, Playwright, Commitlint, VSCode, Tailwind CSS, Authentication with [Clerk](https://clerk.com?utm_source=github&utm_medium=sponsorship&utm_campaign=nextjs-boilerplate), Database with DrizzleORM (PostgreSQL, SQLite, and MySQL), Local database with PGlite and production with Neon (PostgreSQL), Error Monitoring with [Sentry](https://sentry.io/for/nextjs/?utm_source=github&utm_medium=paid-community&utm_campaign=general-fy25q1-nextjs&utm_content=github-banner-nextjsboilerplate-logo), Logging with LogTape (replacing Pino.js) and Log Management, Monitoring as Code, Storybook, Multi-language (i18n), AI-powered code reviews with CodeRabbit, Secure with [Arcjet](https://launch.arcjet.com/Q6eLbRE) (Bot detection, Rate limiting, Attack protection, etc.), and more.
+🚀 Boilerplate and Starter for Next.js with App Router, Tailwind CSS, and TypeScript ⚡️ Prioritizing developer experience first: Next.js, TypeScript, ESLint, Prettier, Lefthook (replacing Husky), Lint-Staged, Vitest (replacing Jest), Testing Library, Playwright, Commitlint, VSCode, Tailwind CSS, JWT-based Authentication, Database with DrizzleORM (PostgreSQL, SQLite, and MySQL), Local database with PGlite and production with Neon (PostgreSQL), Error Monitoring with [Sentry](https://sentry.io/for/nextjs/?utm_source=github&utm_medium=paid-community&utm_campaign=general-fy25q1-nextjs&utm_content=github-banner-nextjsboilerplate-logo), Logging with LogTape (replacing Pino.js) and Log Management, Monitoring as Code, Storybook, Multi-language (i18n), AI-powered code reviews with CodeRabbit, Secure with [Arcjet](https://launch.arcjet.com/Q6eLbRE) (Bot detection, Rate limiting, Attack protection, etc.), and more.
 
 Clone this project and use it to create your own Next.js project. You can check out the live demo at [Next.js Boilerplate](https://demo.nextjs-boilerplate.com), which includes a working authentication system.
 
@@ -141,8 +141,8 @@ Developer experience first, extremely flexible code structure and only keep what
 - 🔥 Type checking [TypeScript](https://www.typescriptlang.org)
 - 💎 Integrate with [Tailwind CSS](https://tailwindcss.com)
 - ✅ Strict Mode for TypeScript and React 19
-- 🔒 Authentication with [Clerk](https://clerk.com?utm_source=github&utm_medium=sponsorship&utm_campaign=nextjs-boilerplate): Sign up, Sign in, Sign out, Forgot password, Reset password, and more.
-- 👤 Passwordless Authentication with Magic Links, Multi-Factor Auth (MFA), Social Auth (Google, Facebook, Twitter, GitHub, Apple, and more), Passwordless login with Passkeys, User Impersonation
+- 🔒 JWT-based Authentication: Sign up, Sign in, Sign out, Profile management with secure httpOnly cookies
+- 👤 Password-based authentication with bcrypt hashing and session management
 - 📦 Type-safe ORM with DrizzleORM, compatible with PostgreSQL, SQLite, and MySQL
 - 💽 Offline and local development database with PGlite
 - ☁️ Remote and production database with Neon (PostgreSQL)
@@ -243,14 +243,77 @@ Need advanced features? Multi-tenancy & Teams, Roles & Permissions, Shadcn UI, E
 
 ### Set up authentication
 
-To get started, you will need to create a Clerk account at [Clerk.com](https://clerk.com?utm_source=github&utm_medium=sponsorship&utm_campaign=nextjs-boilerplate) and create a new application in the Clerk Dashboard. Once you have done that, copy the `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` values and add them to the `.env.local` file (not tracked by Git):
+The project includes a custom JWT-based authentication system that works out of the box. The authentication system uses JSON Web Tokens (JWT) stored in secure httpOnly cookies for session management.
+
+#### Authentication Features
+
+- **Sign Up**: Create new user accounts with email and password
+- **Sign In**: Authenticate users and create secure sessions
+- **Sign Out**: Clear user sessions and cookies
+- **Profile Management**: Update user profile information
+- **Session Management**: Automatic session validation on protected routes
+
+#### Required Environment Variables
+
+The authentication system requires the following environment variable:
 
 ```shell
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_pub_key
-CLERK_SECRET_KEY=your_clerk_secret_key
+JWT_SECRET=your-secret-key-min-32-characters
 ```
 
-Now you have a fully functional authentication system with Next.js, including features such as sign up, sign in, sign out, forgot password, reset password, update profile, update password, update email, delete account, and more.
+Add this to your `.env.local` file (not tracked by Git). For development, a default value is provided, but you **must** set a strong, random secret for production.
+
+#### Security Best Practices for JWT_SECRET
+
+1. **Generate a strong secret**: Use a cryptographically secure random string of at least 32 characters
+2. **Keep it secret**: Never commit JWT_SECRET to version control
+3. **Use different secrets**: Use different JWT_SECRET values for development, staging, and production
+4. **Rotate regularly**: Change your JWT_SECRET periodically and invalidate old sessions
+
+Generate a secure secret using one of these methods:
+
+```shell
+# Using Node.js
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# Using OpenSSL
+openssl rand -hex 32
+```
+
+#### Authentication API Endpoints
+
+The authentication system exposes the following API endpoints:
+
+- **POST `/api/auth/signup`**: Create a new user account
+  - Body: `{ email: string, password: string, name?: string }`
+  - Returns: User data and sets session cookie
+
+- **POST `/api/auth/login`**: Authenticate a user
+  - Body: `{ email: string, password: string }`
+  - Returns: User data and sets session cookie
+
+- **GET `/api/auth/profile`**: Get current user profile (requires authentication)
+  - Returns: Current user data
+
+- **POST `/api/auth/logout`**: Sign out the current user
+  - Clears session cookie
+
+#### Database Schema
+
+The authentication system uses a PostgreSQL database with the following user schema:
+
+```typescript
+{
+  id: number; // auto-increment primary key
+  email: string; // unique, required
+  password: string; // bcrypt hashed, required
+  name: string; // optional
+  createdAt: Date; // timestamp
+  updatedAt: Date; // timestamp
+}
+```
+
+Passwords are automatically hashed using bcrypt with a cost factor of 10 before being stored in the database.
 
 ### Set up remote database
 
@@ -439,7 +502,7 @@ It generates an optimized production build of the boilerplate. To test the gener
 $ npm run start
 ```
 
-You also need to defined the environment variables `CLERK_SECRET_KEY` using your own key.
+You also need to define the environment variable `JWT_SECRET` with a strong, random secret key.
 
 This command starts a local server using the production build. You can now open http://localhost:3000 in your preferred browser to see the result.
 
@@ -453,7 +516,7 @@ Once the database is created and ready, return to the dashboard and click `Appli
 
 Next, connect your database to your application by going to `Networking > Connected services > Add connection` and select the database you just created. You also need to enable the `Add environment variables to the application` option, and rename `DB_URL` to `DATABASE_URL`. Then, click `Add connection`.
 
-Go to `Environment variables > Add environment variable`, and define the environment variables `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` from your Clerk account. Click `Save`.
+Go to `Environment variables > Add environment variable`, and define the environment variable `JWT_SECRET` with a strong, random secret key (at least 32 characters). Click `Save`.
 
 Finally, initiate a new deployment by clicking `Overview > Latest deployments > Deploy now`. If everything is set up correctly, your application will be deployed successfully with a working database.
 
