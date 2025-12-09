@@ -1,24 +1,12 @@
 import type { NextFetchEvent, NextRequest } from 'next/server';
 import { detectBot } from '@arcjet/next';
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import arcjet from '@/libs/Arcjet';
+import { isAuthenticated } from '@/libs/AuthMiddleware';
 import { routing } from './libs/I18nRouting';
 
 const handleI18nRouting = createMiddleware(routing);
-
-const isProtectedRoute = createRouteMatcher([
-  '/dashboard(.*)',
-  '/:locale/dashboard(.*)',
-]);
-
-const isAuthPage = createRouteMatcher([
-  '/sign-in(.*)',
-  '/:locale/sign-in(.*)',
-  '/sign-up(.*)',
-  '/:locale/sign-up(.*)',
-]);
 
 // Improve security with Arcjet
 const aj = arcjet.withRule(
@@ -36,7 +24,7 @@ const aj = arcjet.withRule(
 
 export default async function proxy(
   request: NextRequest,
-  event: NextFetchEvent,
+  _event: NextFetchEvent,
 ) {
   // Verify the request with Arcjet
   // Use `process.env` instead of Env to reduce bundle size in middleware
@@ -48,23 +36,28 @@ export default async function proxy(
     }
   }
 
-  // Clerk keyless mode doesn't work with i18n, this is why we need to run the middleware conditionally
-  if (
-    isAuthPage(request) || isProtectedRoute(request)
-  ) {
-    return clerkMiddleware(async (auth, req) => {
-      if (isProtectedRoute(req)) {
-        const locale = req.nextUrl.pathname.match(/(\/.*)\/dashboard/)?.at(1) ?? '';
+  const pathname = request.nextUrl.pathname;
+  const isProtectedRoute = pathname.includes('/dashboard');
+  const isAuthPage = pathname.includes('/sign-in') || pathname.includes('/sign-up');
 
-        const signInUrl = new URL(`${locale}/sign-in`, req.url);
+  // Redirect authenticated users away from auth pages
+  if (isAuthPage) {
+    const authenticated = await isAuthenticated(request);
+    if (authenticated) {
+      const locale = pathname.match(/^\/([^/]+)\//)?.at(1) ?? '';
+      const dashboardUrl = locale ? `/${locale}/dashboard` : '/dashboard';
+      return NextResponse.redirect(new URL(dashboardUrl, request.url));
+    }
+  }
 
-        await auth.protect({
-          unauthenticatedUrl: signInUrl.toString(),
-        });
-      }
-
-      return handleI18nRouting(req);
-    })(request, event);
+  // Protect dashboard routes
+  if (isProtectedRoute) {
+    const authenticated = await isAuthenticated(request);
+    if (!authenticated) {
+      const locale = pathname.match(/^\/([^/]+)\//)?.at(1) ?? '';
+      const signInUrl = locale ? `/${locale}/sign-in` : '/sign-in';
+      return NextResponse.redirect(new URL(signInUrl, request.url));
+    }
   }
 
   return handleI18nRouting(request);
