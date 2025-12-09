@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
-import { UserProfile } from '@clerk/nextjs';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { getI18nPath } from '@/utils/Helpers';
+import { redirect } from 'next/navigation';
+import { UserProfileForm } from '@/components/UserProfileForm';
+import { getCurrentUser } from '@/libs/Auth';
 
 type IUserProfilePageProps = {
   params: Promise<{ locale: string }>;
@@ -23,11 +24,15 @@ export default async function UserProfilePage(props: IUserProfilePageProps) {
   const { locale } = await props.params;
   setRequestLocale(locale);
 
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect(`/${locale}/sign-in`);
+  }
+
   return (
-    <div className="my-6 -ml-16">
-      <UserProfile
-        path={getI18nPath('/dashboard/user-profile', locale)}
-      />
+    <div className="my-6">
+      <UserProfileForm locale={locale} user={user} />
     </div>
   );
-};
+}
