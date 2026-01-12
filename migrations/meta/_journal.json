@@ -15,6 +15,13 @@
       "when": 1765246024040,
       "tag": "0001_left_captain_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768156083874,
+      "tag": "0002_chief_mister_fear",
+      "breakpoints": true
     }
   ]
 }

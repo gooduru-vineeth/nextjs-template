@@ -2,18 +2,18 @@
   "RootLayout": {
     "home_link": "Home",
     "about_link": "About",
-    "counter_link": "Counter",
-    "portfolio_link": "Portfolio",
+    "editor_link": "Create Mockup",
+    "dashboard_link": "Dashboard",
     "sign_in_link": "Sign in",
     "sign_up_link": "Sign up"
   },
   "BaseTemplate": {
-    "description": "Starter code for your Nextjs Boilerplate with Tailwind CSS",
+    "description": "Create professional mockups in minutes with MockFlow",
     "made_with": "Made with <author></author>."
   },
   "Index": {
-    "meta_title": "Next.js Boilerplate Presentation",
-    "meta_description": "Next js Boilerplate is the perfect starter code for your project. Build your React application with the Next.js framework.",
+    "meta_title": "MockFlow - Create Professional Mockups in Minutes",
+    "meta_description": "Create pixel-perfect mockups of chat apps, AI interfaces, and social media posts. No design skills required.",
     "sponsors_title": "Sponsors"
   },
   "Counter": {
